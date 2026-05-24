@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, getApiHeaders } from './config';
+
 
 interface IncomeSource {
   name: string;
@@ -36,7 +37,9 @@ export function EarningsProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/dashboard`);
+      const res = await fetch(`${API_BASE_URL}/api/dashboard`, {
+        headers: getApiHeaders()
+      });
       if (!res.ok) throw new Error('Backend not responding');
       const data = await res.json();
       setIncomeSources(data.incomeSources || []);

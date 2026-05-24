@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { CheckCircle, Clock, Gift, ArrowRight, TrendingUp, Shield, Heart, Sparkles, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 
 // Icon mapping since we can't send components from backend
 const ICON_MAP: any = {
@@ -15,13 +15,15 @@ const ICON_MAP: any = {
 export function SchemesPage() {
   const [schemes, setSchemes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMounted = useRef(true);
 
   const fetchSchemes = () => {
     setLoading(true);
     // 1. Fetch real income first
-    fetch(`${API_BASE_URL}/api/dashboard`)
+    fetch(`${API_BASE_URL}/api/dashboard`, { headers: getApiHeaders() })
       .then(res => res.json())
       .then(dashboardData => {
+        if (!isMounted.current) return;
         const sources = dashboardData.incomeSources || [];
         const monthlyTotal = sources.reduce((sum: number, s: any) => sum + s.amount, 0);
         const annualIncome = monthlyTotal * 12;
@@ -36,13 +38,14 @@ export function SchemesPage() {
         // 2. Fetch schemes based on real income
         return fetch(`${API_BASE_URL}/api/recommend_schemes`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getApiHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(userProfile)
         });
       })
-      .then(res => res.json())
+      .then(res => res ? res.json() : null)
       .then(data => {
-        const formatted = data.schemes.map((s: any) => ({
+        if (!isMounted.current || !data) return;
+        const formatted = (data.schemes || []).map((s: any) => ({
           ...s,
           icon: ICON_MAP[s.category === 'Loan' ? 'Gift' : s.category === 'Insurance' ? 'Shield' : 'TrendingUp'] || Gift,
           color: s.category === 'Loan' ? '#1E7F5C' : '#3B82F6'
@@ -52,12 +55,18 @@ export function SchemesPage() {
       })
       .catch(err => {
         console.error("Failed to fetch schemes", err);
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+        }
       });
   };
 
   useEffect(() => {
+    isMounted.current = true;
     fetchSchemes();
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const eligibleSchemes = schemes.filter(s => s.status === 'eligible');

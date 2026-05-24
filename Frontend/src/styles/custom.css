@@ -484,3 +484,84 @@ textarea:focus-visible {
 .transition-slow {
     transition: all var(--transition-slow);
 }
+
+/* ============================================
+   15. GOOGLE TRANSLATE CUSTOM STYLING
+   ============================================ */
+#google_translate_element {
+    bottom: 24px !important;
+    right: 24px !important;
+}
+
+.goog-te-gadget-simple {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 8px 14px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+    font-family: 'Outfit', 'Inter', sans-serif !important;
+    font-size: 13px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.goog-te-gadget-simple:hover {
+    border-color: #0A1F44 !important;
+    box-shadow: 0 20px 25px -5px rgba(10, 31, 68, 0.1), 0 8px 10px -6px rgba(10, 31, 68, 0.1) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Hide Google Icon inside translate widget */
+.goog-te-gadget-icon {
+    display: none !important;
+}
+
+/* Style the text link inside the Google Translate widget */
+.goog-te-menu-value {
+    color: #4a5568 !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.goog-te-menu-value span {
+    color: #0a1f44 !important;
+    font-weight: 700 !important;
+}
+
+/* Remove default Google Translate borders and indicators */
+.goog-te-gadget-simple img {
+    display: none !important;
+}
+
+.goog-te-menu-value img {
+    display: none !important;
+}
+
+.goog-te-menu-value span[style*="color"] {
+    color: #0A1F44 !important;
+}
+
+/* Hide the powered by google text */
+.goog-te-gadget {
+    color: transparent !important;
+}
+
+.goog-te-gadget span {
+    display: none !important;
+}
+
+/* Hide the top banner frame introduced by Google Translate on translation */
+body {
+    top: 0px !important;
+}
+
+.goog-te-banner-frame {
+    display: none !important;
+}
+
+.goog-logo-link {
+    display: none !important;
+}

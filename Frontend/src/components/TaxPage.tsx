@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -38,32 +38,46 @@ export function TaxPage() {
   const [incomeSources, setIncomeSources] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isMounted = useRef(true);
+
   useEffect(() => {
-    // Fetch calculated tax data from backend
+    isMounted.current = true;
     setIsLoading(true);
-    fetch(`${API_BASE_URL}/api/tax_calculation`)
+    fetch(`${API_BASE_URL}/api/tax_calculation`, { headers: getApiHeaders() })
       .then(res => res.json())
       .then(data => {
-        setTotalAnnualEarnings(data.annual_income || 0);
-        setTaxPayable(data.tax_payable || 0);
-        setRefundEligible(data.refund_eligible || 0);
+        if (isMounted.current) {
+          setTotalAnnualEarnings(data.annual_income || 0);
+          setTaxPayable(data.tax_payable || 0);
+          setRefundEligible(data.refund_eligible || 0);
+        }
       })
       .catch(err => {
         console.error("Failed to fetch tax calculations", err);
-        // Set default values on error
-        setTotalAnnualEarnings(0);
-        setTaxPayable(0);
-        setRefundEligible(0);
+        if (isMounted.current) {
+          setTotalAnnualEarnings(0);
+          setTaxPayable(0);
+          setRefundEligible(0);
+        }
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
+      });
 
-    // Fetch income sources for PDF
-    fetch(`${API_BASE_URL}/api/dashboard`)
+    fetch(`${API_BASE_URL}/api/dashboard`, { headers: getApiHeaders() })
       .then(res => res.json())
       .then(data => {
-        setIncomeSources(data.incomeSources || []);
+        if (isMounted.current) {
+          setIncomeSources(data.incomeSources || []);
+        }
       })
       .catch(err => console.error("Failed to fetch sources", err));
+
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const annualIncome = totalAnnualEarnings;

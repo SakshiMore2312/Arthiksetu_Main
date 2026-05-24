@@ -1,15 +1,24 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { User, Phone, Mail, MapPin, Calendar, Shield, CheckCircle, Loader2, Upload, LogOut, Edit2, Save, X, Lock, ShieldCheck } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 
-export function ProfilePage() {
+export function ProfilePage({ user, onLogout }: { user?: any; onLogout?: () => void }) {
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
-    name: 'Rajesh Kumar',
-    phone: '+91 98765 43210',
-    email: 'rajesh.kumar@email.com',
+    name: user?.displayName || 'Rajesh Kumar',
+    phone: user?.phoneNumber || '+91 98765 43210',
+    email: user?.email || 'rajesh.kumar@email.com',
     location: 'Mumbai, Maharashtra',
     dob: '15 August 1990',
     memberSince: 'January 2024'
@@ -19,9 +28,25 @@ export function ProfilePage() {
     'Aadhaar': 'unverified',
     'PAN Card': 'unverified',
     'Bank Account': 'unverified',
-    'Phone Number': 'unverified',
-    'Email Address': 'unverified',
+    'Phone Number': user?.phoneNumber ? 'verified' : 'unverified',
+    'Email Address': user?.emailVerified ? 'verified' : 'unverified',
   });
+
+  useEffect(() => {
+    if (user) {
+      setProfile(prev => ({
+        ...prev,
+        name: user.displayName || prev.name,
+        email: user.email || prev.email,
+        phone: user.phoneNumber || prev.phone,
+      }));
+      setVerificationStatus(prev => ({
+        ...prev,
+        'Email Address': user.emailVerified ? 'verified' : 'unverified',
+        'Phone Number': user.phoneNumber ? 'verified' : 'unverified',
+      }));
+    }
+  }, [user]);
 
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState<{ [key: string]: boolean }>({});
@@ -57,22 +82,28 @@ export function ProfilePage() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/send_otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ target, type }),
       });
 
       if (response.ok) {
-        setOtpSent(prev => ({ ...prev, [docName]: true }));
-        setVerificationStatus(prev => ({ ...prev, [docName]: 'otp_sent' }));
+        if (isMounted.current) {
+          setOtpSent(prev => ({ ...prev, [docName]: true }));
+          setVerificationStatus(prev => ({ ...prev, [docName]: 'otp_sent' }));
+        }
         alert(`OTP sent to ${target} (Use 123456 for demo)`);
       } else {
         alert('Failed to send OTP');
-        setVerificationStatus(prev => ({ ...prev, [docName]: 'entering_contact' }));
+        if (isMounted.current) {
+          setVerificationStatus(prev => ({ ...prev, [docName]: 'entering_contact' }));
+        }
       }
     } catch (e) {
       console.error(e);
       alert('Error sending OTP');
-      setVerificationStatus(prev => ({ ...prev, [docName]: 'entering_contact' }));
+      if (isMounted.current) {
+        setVerificationStatus(prev => ({ ...prev, [docName]: 'entering_contact' }));
+      }
     }
   };
 
@@ -86,29 +117,35 @@ export function ProfilePage() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/verify_otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ target, type, otp }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setVerificationStatus(prev => ({ ...prev, [docName]: 'verified' }));
-        setOtpSent(prev => ({ ...prev, [docName]: false }));
-        // Update main profile if verified
-        setProfile(prev => ({
-          ...prev,
-          [type]: target
-        }));
+        if (isMounted.current) {
+          setVerificationStatus(prev => ({ ...prev, [docName]: 'verified' }));
+          setOtpSent(prev => ({ ...prev, [docName]: false }));
+          // Update main profile if verified
+          setProfile(prev => ({
+            ...prev,
+            [type]: target
+          }));
+        }
         alert('Verification Successful!');
       } else {
         alert('Invalid OTP. Please try again.');
-        setVerificationStatus(prev => ({ ...prev, [docName]: 'otp_sent' }));
+        if (isMounted.current) {
+          setVerificationStatus(prev => ({ ...prev, [docName]: 'otp_sent' }));
+        }
       }
     } catch (e) {
       console.error(e);
       alert('Verification failed');
-      setVerificationStatus(prev => ({ ...prev, [docName]: 'otp_sent' }));
+      if (isMounted.current) {
+        setVerificationStatus(prev => ({ ...prev, [docName]: 'otp_sent' }));
+      }
     }
   };
 
@@ -124,24 +161,33 @@ export function ProfilePage() {
       try {
         const response = await fetch(`${API_BASE_URL}/api/verify_document`, {
           method: 'POST',
+          headers: getApiHeaders(),
           body: formData,
         });
 
         if (response.ok) {
           const data = await response.json();
-          setVerificationStatus(prev => ({ ...prev, [uploadingDoc]: 'verified' }));
+          if (isMounted.current) {
+            setVerificationStatus(prev => ({ ...prev, [uploadingDoc]: 'verified' }));
+          }
           alert(data.message);
         } else {
-          setVerificationStatus(prev => ({ ...prev, [uploadingDoc]: 'unverified' }));
+          if (isMounted.current) {
+            setVerificationStatus(prev => ({ ...prev, [uploadingDoc]: 'unverified' }));
+          }
           alert("Verification failed. Please try again.");
         }
       } catch (error) {
         console.error("Verification error:", error);
-        setVerificationStatus(prev => ({ ...prev, [uploadingDoc]: 'unverified' }));
+        if (isMounted.current) {
+          setVerificationStatus(prev => ({ ...prev, [uploadingDoc]: 'unverified' }));
+        }
         alert("Verification error. Check backend connection.");
       }
 
-      setUploadingDoc(null);
+      if (isMounted.current) {
+        setUploadingDoc(null);
+      }
       if (docInputRef.current) docInputRef.current.value = '';
     }
   };
@@ -231,7 +277,13 @@ export function ProfilePage() {
                 <Button
                   variant="destructive"
                   className="ml-auto px-6 py-2.5 rounded-xl font-bold bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 shadow-none"
-                  onClick={() => alert("Firebase Sign Out Logic would be triggered here.")}
+                  onClick={() => {
+                    if (onLogout) {
+                      onLogout();
+                    } else {
+                      alert("Firebase Sign Out Logic would be triggered here.");
+                    }
+                  }}
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Log Out

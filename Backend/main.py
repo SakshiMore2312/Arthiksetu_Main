@@ -1,7 +1,15 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Header
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 from dotenv import load_dotenv
+import logging
+
+# Configure standard logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("arthiksetu")
 
 # Load .env file if present
 load_dotenv()
@@ -27,10 +35,21 @@ from gemini_service import (
 
 app = FastAPI(title="ArthikSetu AI Backend")
 
-# Allow CORS for frontend
+# Allow CORS for frontend (secure, with local and environment overrides)
+origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if origins_env:
+    origins = [orig.strip() for orig in origins_env.split(",") if orig.strip()]
+else:
+    origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace with specific origin
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,8 +63,7 @@ chat_sessions = {}
 # ============================================
 # DYNAMIC IN-MEMORY DATA STORE
 # ============================================
-# This stores all earnings data dynamically
-earnings_store = {
+DEFAULT_EARNINGS_STORE = {
     "income_sources": [
         {"name": "Zomato", "amount": 14500, "verified": True, "source": "Zomato", "description": "Food delivery earnings - Zomato", "upload_time": "2025-02-01T09:00:00"},
         {"name": "Swiggy", "amount": 11200, "verified": True, "source": "Swiggy", "description": "Food delivery earnings - Swiggy", "upload_time": "2025-02-01T09:05:00"},
@@ -62,28 +80,49 @@ earnings_store = {
     "total_monthly_income": 34600,
 }
 
-def get_total_monthly_income():
-    """Calculate total monthly income from all sources"""
-    return sum(s.get("amount", 0) for s in earnings_store["income_sources"])
+# Mapping of user_email -> user's customized earnings store
+user_earnings_stores = {}
 
-def update_monthly_earnings():
+def get_earnings_store(x_user_email: Optional[str] = None) -> Dict:
+    """
+    Returns the earnings store for the specific user email.
+    If the email is not yet registered, initializes a deep copy of DEFAULT_EARNINGS_STORE.
+    """
+    email = x_user_email or "guest@arthiksetu.in"
+    if email not in user_earnings_stores:
+        import copy
+        user_earnings_stores[email] = copy.deepcopy(DEFAULT_EARNINGS_STORE)
+    return user_earnings_stores[email]
+
+# Reference to the guest store for global fallback/tests
+earnings_store = get_earnings_store()
+
+def get_total_monthly_income(store: Optional[Dict] = None):
+    """Calculate total monthly income from all sources"""
+    if store is None:
+        store = get_earnings_store()
+    return sum(s.get("amount", 0) for s in store["income_sources"])
+
+def update_monthly_earnings(store: Optional[Dict] = None):
     """Update the monthly earnings history based on current income sources"""
-    total = get_total_monthly_income()
-    earnings_store["total_monthly_income"] = total
+    if store is None:
+        store = get_earnings_store()
+    total = get_total_monthly_income(store)
+    store["total_monthly_income"] = total
     
     # Update the current month in monthly earnings
     current_month = datetime.now().strftime("%b")
     found = False
-    for entry in earnings_store["monthly_earnings"]:
+    for entry in store["monthly_earnings"]:
         if entry["month"] == current_month:
             entry["amount"] = total
             found = True
             break
     if not found:
-        earnings_store["monthly_earnings"].append({"month": current_month, "amount": total})
+        store["monthly_earnings"].append({"month": current_month, "amount": total})
     
     # Keep only last 6 months
-    earnings_store["monthly_earnings"] = earnings_store["monthly_earnings"][-6:]
+    store["monthly_earnings"] = store["monthly_earnings"][-6:]
 
 class SMSRequest(BaseModel):
     messages: List[str]
@@ -99,21 +138,22 @@ def read_root():
     return {"message": "ArthikSetu AI Backend is Running"}
 
 @app.get("/api/dashboard")
-def get_dashboard():
+def get_dashboard(x_user_email: Optional[str] = Header(None)):
     """
     Get dashboard data with income sources and monthly earnings.
     Returns dynamic data from the earnings store.
     """
-    total = get_total_monthly_income()
+    store = get_earnings_store(x_user_email)
+    total = get_total_monthly_income(store)
     
     return {
-        "incomeSources": earnings_store["income_sources"],
-        "earningsData": earnings_store["monthly_earnings"],
+        "incomeSources": store["income_sources"],
+        "earningsData": store["monthly_earnings"],
         "totalMonthlyIncome": total
     }
 
 @app.post("/api/verify_document")
-async def verify_document(file: UploadFile = File(...), doc_type: str = Form(...)):
+async def verify_document(file: UploadFile = File(...), doc_type: str = Form(...), x_user_email: Optional[str] = Header(None)):
     """
     AI-based document verification using Gemini Vision.
     For income proof, extracts earnings and adds to the dynamic store.
@@ -124,12 +164,32 @@ async def verify_document(file: UploadFile = File(...), doc_type: str = Form(...
         file_bytes = await file.read()
         mime_type = file.content_type or "image/jpeg"
         
+        # Validate file size (max 10MB)
+        if len(file_bytes) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB.")
+        
+        # Validate MIME type
+        allowed_types = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+        if mime_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="Unsupported file format. Only JPEG, PNG, WEBP, and PDF are allowed.")
+        
         # Use AI to verify document
-        result = verify_document_with_ai(file_bytes, mime_type, doc_type)
+        result = await asyncio.to_thread(verify_document_with_ai, file_bytes, mime_type, doc_type)
         
         is_income_proof = doc_type.lower() in ['income proof', 'income_proof', 'salary slip', 'bank statement', 'earning proof']
         
+        # Mask the document ID in the backend (data minimization / DPDP compliance)
+        raw_id = result.get("extracted_id")
+        masked_id = None
+        if raw_id:
+            raw_str = str(raw_id).replace(" ", "")
+            if len(raw_str) > 4:
+                masked_id = "X" * (len(raw_str) - 4) + " " + raw_str[-4:]
+            else:
+                masked_id = raw_str
+        
         if is_income_proof:
+            store = get_earnings_store(x_user_email)
             # Handle income proof - extract earnings and add to store
             if result.get("is_valid"):
                 total_amount = result.get("total_amount", 0)
@@ -156,13 +216,13 @@ async def verify_document(file: UploadFile = File(...), doc_type: str = Form(...
                         "date": date_found,
                         "upload_time": datetime.now().isoformat()
                     }
-                    earnings_store["income_sources"].append(new_source)
-                    update_monthly_earnings()
+                    store["income_sources"].append(new_source)
+                    update_monthly_earnings(store)
                 
                 return {
                     "status": "verified",
                     "doc_type": "Income Proof",
-                    "extracted_id": result.get("extracted_id"),
+                    "extracted_id": masked_id,
                     "total_amount": total_amount,
                     "source_name": source_name,
                     "description": description,
@@ -171,7 +231,7 @@ async def verify_document(file: UploadFile = File(...), doc_type: str = Form(...
                     "message": f"Income proof verified. Detected ₹{total_amount:,.0f} from {source_name}",
                     "confidence_score": 0.92 if total_amount > 0 else 0.5,
                     "reason": result.get("reason"),
-                    "current_total": get_total_monthly_income()
+                    "current_total": get_total_monthly_income(store)
                 }
             else:
                 return {
@@ -191,7 +251,7 @@ async def verify_document(file: UploadFile = File(...), doc_type: str = Form(...
                 resp = {
                     "status": "verified",
                     "doc_type": doc_type,
-                    "extracted_id": result.get("extracted_id"),
+                    "extracted_id": masked_id,
                     "message": f"{doc_type} verified successfully via AI analysis",
                     "confidence_score": confidence_score,
                     "verification_source": "ai_upload",
@@ -209,36 +269,49 @@ async def verify_document(file: UploadFile = File(...), doc_type: str = Form(...
                     "reason": result.get("reason", "Document does not appear to be a valid " + doc_type),
                     "suggestion": "Try verifying via DigiLocker for a government-backed result."
                 }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await file.close()
 
 @app.post("/api/add_income")
-async def add_income_source(name: str = Form(...), amount: float = Form(...), source: str = Form("Manual")):
+async def add_income_source(name: str = Form(...), amount: float = Form(...), source: str = Form("Manual"), x_user_email: Optional[str] = Header(None)):
     """
     Manually add an income source.
     """
+    import html
+    if amount < 0:
+        raise HTTPException(status_code=400, detail="Amount cannot be negative.")
+        
+    clean_name = html.escape(name.strip())
+    clean_source = html.escape(source.strip())
+    
     new_source = {
-        "name": name,
+        "name": clean_name,
         "amount": amount,
         "verified": False,
-        "source": source,
-        "description": f"Manually added income from {name}",
+        "source": clean_source,
+        "description": f"Manually added income from {clean_name}",
         "upload_time": datetime.now().isoformat()
     }
-    earnings_store["income_sources"].append(new_source)
-    update_monthly_earnings()
-    return {"status": "success", "message": f"Added {name} with ₹{amount}", "total": get_total_monthly_income()}
+    store = get_earnings_store(x_user_email)
+    store["income_sources"].append(new_source)
+    update_monthly_earnings(store)
+    return {"status": "success", "message": f"Added {clean_name} with ₹{amount}", "total": get_total_monthly_income(store)}
 
 @app.delete("/api/clear_income")
-async def clear_income():
+async def clear_income(x_user_email: Optional[str] = Header(None)):
     """Clear all income sources (for testing)."""
-    earnings_store["income_sources"] = []
-    earnings_store["monthly_earnings"] = []
-    earnings_store["total_monthly_income"] = 0
+    store = get_earnings_store(x_user_email)
+    store["income_sources"] = []
+    store["monthly_earnings"] = []
+    store["total_monthly_income"] = 0
     return {"status": "cleared"}
 
 @app.post("/api/parse_sms")
-async def parse_sms_endpoint(request: SMSRequest):
+async def parse_sms_endpoint(request: SMSRequest, x_user_email: Optional[str] = Header(None)):
     """
     Parses SMS using backend NLP/rule-based extraction.
     Also adds detected credits to the earnings store.
@@ -252,15 +325,16 @@ async def parse_sms_endpoint(request: SMSRequest):
         total_debit = sum(r.get('amount', 0) for r in results if r.get('type') == 'debit')
         
         # Add credit transactions to earnings store
+        store = get_earnings_store(x_user_email)
         for r in results:
             if r.get('type') == 'credit' and r.get('amount', 0) > 0:
                 merchant = r.get('merchant', 'SMS Income')
                 # Check if this source already exists
-                existing = next((s for s in earnings_store["income_sources"] if s["name"] == merchant), None)
+                existing = next((s for s in store["income_sources"] if s["name"] == merchant), None)
                 if existing:
                     existing["amount"] += r["amount"]
                 else:
-                    earnings_store["income_sources"].append({
+                    store["income_sources"].append({
                         "name": merchant,
                         "amount": r["amount"],
                         "verified": True,
@@ -270,7 +344,7 @@ async def parse_sms_endpoint(request: SMSRequest):
                     })
         
         if total_credit > 0:
-            update_monthly_earnings()
+            update_monthly_earnings(store)
         
         return {
             "transactions": results,
@@ -284,7 +358,7 @@ async def parse_sms_endpoint(request: SMSRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/recommend_schemes")
-def recommend_schemes_endpoint(profile: UserProfile):
+def recommend_schemes_endpoint(profile: UserProfile, x_user_email: Optional[str] = Header(None)):
     """
     Recommends schemes based on user profile.
     Uses dynamic income from earnings store if profile income is 0.
@@ -293,7 +367,8 @@ def recommend_schemes_endpoint(profile: UserProfile):
         profile_dict = profile.dict()
         # If income is 0 or not provided, use dynamic income from earnings store
         if profile_dict.get("income", 0) <= 0:
-            profile_dict["income"] = get_total_monthly_income() * 12
+            store = get_earnings_store(x_user_email)
+            profile_dict["income"] = get_total_monthly_income(store) * 12
         
         recommendations = get_eligible_schemes(profile_dict)
         return {"schemes": recommendations, "count": len(recommendations)}
@@ -305,11 +380,12 @@ def get_all_schemes():
     return {"schemes": SCHEMES_DB}
 
 @app.get("/api/loans")
-def get_loans():
+def get_loans(x_user_email: Optional[str] = Header(None)):
     """
     Returns loan options filtered based on the user's actual verified income.
     """
-    monthly_income = get_total_monthly_income()
+    store = get_earnings_store(x_user_email)
+    monthly_income = get_total_monthly_income(store)
     
     all_loans = [
         {
@@ -399,16 +475,22 @@ class ChatMessage(BaseModel):
     session_id: Optional[str] = "default"
 
 @app.post("/api/chat")
-async def chat_endpoint(request: ChatMessage):
+async def chat_endpoint(request: ChatMessage, x_user_email: Optional[str] = Header(None)):
     """
     AI Earnings Assistant Chatbot - Conversational interface for tracking income.
     """
     try:
-        # Get or create chat history
-        if request.session_id not in chat_sessions:
-            chat_sessions[request.session_id] = []
+        if len(request.message) > 5000:
+            raise HTTPException(status_code=400, detail="Message too long (max 5000 characters).")
+            
+        email = x_user_email or "guest@arthiksetu.in"
+        key = f"{email}:{request.session_id}"
         
-        history = chat_sessions[request.session_id]
+        # Get or create chat history
+        if key not in chat_sessions:
+            chat_sessions[key] = []
+        
+        history = chat_sessions[key]
         
         # Get AI response
         response = await chat_with_ai_assistant(request.message, history)
@@ -418,12 +500,14 @@ async def chat_endpoint(request: ChatMessage):
         history.append({"role": "assistant", "content": response})
         
         # Keep only last 20 messages
-        chat_sessions[request.session_id] = history[-20:]
+        chat_sessions[key] = history[-20:]
         
         return {
             "response": response,
             "session_id": request.session_id
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -450,8 +534,13 @@ async def decode_message_endpoint(request: MessageDecodeRequest):
     Financial Message Decoder - Explains confusing bank/platform messages.
     """
     try:
+        if len(request.message) > 5000:
+            raise HTTPException(status_code=400, detail="Message too long (max 5000 characters).")
+            
         decoded = await decode_financial_message(request.message)
         return {"decoded_message": decoded}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -587,11 +676,13 @@ from fastapi.responses import StreamingResponse
 import io
 from datetime import datetime
 
-def _build_text_report(report_type: str) -> str:
+def _build_text_report(report_type: str, store: Optional[Dict] = None) -> str:
     """Build a plain-text report based on current earnings data."""
-    monthly = get_total_monthly_income()
+    if store is None:
+        store = get_earnings_store()
+    monthly = get_total_monthly_income(store)
     annual = monthly * 12
-    sources = earnings_store["income_sources"]
+    sources = store["income_sources"]
     now = datetime.now().strftime("%d-%b-%Y %I:%M %p")
     
     lines = [
@@ -661,10 +752,11 @@ def _build_text_report(report_type: str) -> str:
 
 
 @app.get("/api/generate_report")
-def generate_report():
+def generate_report(x_user_email: Optional[str] = Header(None)):
     """Generate and download the annual income report as a text file."""
     try:
-        content = _build_text_report("Annual Income Report 2024-25")
+        store = get_earnings_store(x_user_email)
+        content = _build_text_report("Annual Income Report 2024-25", store)
         buffer = io.BytesIO(content.encode("utf-8"))
         return StreamingResponse(
             buffer,
@@ -676,7 +768,7 @@ def generate_report():
 
 
 @app.get("/api/download_report/{report_id}")
-def download_report(report_id: str):
+def download_report(report_id: str, x_user_email: Optional[str] = Header(None)):
     """Download a specific report by its ID."""
     try:
         report_titles = {
@@ -687,7 +779,8 @@ def download_report(report_id: str):
         }
         
         title = report_titles.get(report_id, f"Report - {report_id}")
-        content = _build_text_report(title)
+        store = get_earnings_store(x_user_email)
+        content = _build_text_report(title, store)
         safe_name = report_id.replace("/", "_").replace("\\", "_")
         buffer = io.BytesIO(content.encode("utf-8"))
         return StreamingResponse(
@@ -757,8 +850,8 @@ async def send_otp(request: OTPRequest):
         }
         
         # In production, send via SMS gateway or email service here
-        # For demo, we accept "123456" as a universal OTP and also log the real one
-        print(f"[OTP] Generated OTP {otp} for {otp_type}: {target}")
+        # For demo, we accept "123456" as a universal OTP and also log the real one securely
+        logger.info(f"[OTP] Generated OTP for {otp_type} sent successfully (masked target: {target[:3]}***{target[-3:] if len(target) > 6 else ''})")
         
         return {
             "success": True,
@@ -785,12 +878,16 @@ async def verify_otp(request: OTPVerifyRequest):
         key = _hash_target(target)
         stored = otp_store.get(key)
         
+        # Enforce session existence
+        if not stored:
+            return {"success": False, "message": "No OTP requested for this phone/email or OTP expired."}
+        
         # Rate limiting: max 5 attempts
-        if stored and stored.get("attempts", 0) >= 5:
+        if stored.get("attempts", 0) >= 5:
             return {"success": False, "message": "Too many attempts. Please request a new OTP."}
         
         # Accept demo OTP "123456" or the actual generated OTP
-        if otp == "123456" or (stored and stored.get("otp") == otp):
+        if otp == "123456" or stored.get("otp") == otp:
             # Clean up used OTP
             if key in otp_store:
                 del otp_store[key]
@@ -802,8 +899,7 @@ async def verify_otp(request: OTPVerifyRequest):
             }
         else:
             # Increment attempt counter
-            if stored:
-                stored["attempts"] = stored.get("attempts", 0) + 1
+            stored["attempts"] = stored.get("attempts", 0) + 1
             
             return {
                 "success": False,
@@ -818,19 +914,38 @@ async def verify_otp(request: OTPVerifyRequest):
 # ---------------------------------------------------------------------------
 
 @app.delete("/api/delete_all_data")
-async def delete_all_data():
+async def delete_all_data(x_user_email: Optional[str] = Header(None)):
     """
     Nuclear option — delete ALL user data from the system.
     Clears earnings, chat sessions, OTP states, everything.
     """
-    global earnings_store, chat_sessions, otp_store
-    earnings_store = {
-        "income_sources": [],
-        "monthly_earnings": [],
-        "total_monthly_income": 0,
-    }
-    chat_sessions.clear()
-    otp_store.clear()
+    email = x_user_email or "guest@arthiksetu.in"
+    
+    if email in user_earnings_stores:
+        user_earnings_stores[email] = {
+            "income_sources": [],
+            "monthly_earnings": [],
+            "total_monthly_income": 0,
+        }
+        
+    if email == "guest@arthiksetu.in":
+        global earnings_store
+        earnings_store = {
+            "income_sources": [],
+            "monthly_earnings": [],
+            "total_monthly_income": 0,
+        }
+        
+    # Clear chat sessions for this email prefix
+    keys_to_delete = [k for k in chat_sessions.keys() if k.startswith(f"{email}:")]
+    for k in keys_to_delete:
+        del chat_sessions[k]
+        
+    # Clear OTP sessions ending with email target
+    keys_to_delete_otp = [k for k in otp_store.keys() if k.endswith(email)]
+    for k in keys_to_delete_otp:
+        del otp_store[k]
+        
     return {
         "status": "deleted",
         "message": "All data has been permanently deleted. Earnings, chat history, and sessions have been wiped.",
@@ -839,19 +954,21 @@ async def delete_all_data():
 
 
 @app.get("/api/export_earnings")
-async def export_earnings(format: str = Query(default="json")):
+async def export_earnings(format: str = Query(default="json"), x_user_email: Optional[str] = Header(None)):
     """
     Export all earnings data so the user owns their data.
     Supports JSON format. Frontend converts to PDF.
     """
+    store = get_earnings_store(x_user_email)
     return {
         "exported_at": datetime.now().isoformat(),
-        "income_sources": earnings_store["income_sources"],
-        "monthly_earnings": earnings_store["monthly_earnings"],
-        "total_monthly_income": earnings_store["total_monthly_income"],
+        "income_sources": store["income_sources"],
+        "earnings": store["income_sources"],  # E2E test compatibility
+        "monthly_earnings": store["monthly_earnings"],
+        "total_monthly_income": store["total_monthly_income"],
         "summary": {
-            "total_sources": len(earnings_store["income_sources"]),
-            "total_income": get_total_monthly_income(),
+            "total_sources": len(store["income_sources"]),
+            "total_income": get_total_monthly_income(store),
         }
     }
 
@@ -859,14 +976,30 @@ async def export_earnings(format: str = Query(default="json")):
 @app.get("/api/privacy_settings")
 async def get_privacy_settings():
     """Return current privacy/permission states (stored client-side, this is a reference endpoint)."""
+    permissions = [
+        {"id": "sms_parsing", "label": "SMS Parsing", "description": "Allow app to parse financial SMS messages"},
+        {"id": "location_access", "label": "Location Access", "description": "Allow location for nearby services"},
+        {"id": "document_upload", "label": "Document Upload", "description": "Allow uploading ID documents for verification"},
+    ]
     return {
         "note": "Privacy settings are stored locally in your browser. No server-side tracking.",
-        "available_permissions": [
-            {"id": "sms_parsing", "label": "SMS Parsing", "description": "Allow app to parse financial SMS messages"},
-            {"id": "location_access", "label": "Location Access", "description": "Allow location for nearby services"},
-            {"id": "document_upload", "label": "Document Upload", "description": "Allow uploading ID documents for verification"},
-        ]
+        "available_permissions": permissions,
+        "permissions": permissions,  # E2E test compatibility
     }
+
+
+# =================================================================----------
+# Mobile API Compatibility Endpoints (protects against 404 on /api/chatbot & /api/decoder)
+# =================================================================----------
+
+@app.post("/api/chatbot")
+async def chatbot_compatibility_endpoint(request: ChatMessage):
+    return await chat_endpoint(request)
+
+
+@app.post("/api/decoder")
+async def decoder_compatibility_endpoint(request: MessageDecodeRequest):
+    return await decode_message_endpoint(request)
 
 
 if __name__ == "__main__":

@@ -1,26 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { ChevronRight, Percent, Clock, ShieldCheck, Banknote, Sparkles, Building2, AlertTriangle, ExternalLink } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 
 export function Loans() {
     const [loans, setLoans] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [userIncome, setUserIncome] = useState(0);
 
+    const isMounted = useRef(true);
+
     useEffect(() => {
-        fetch(`${API_BASE_URL}/api/loans`)
+        isMounted.current = true;
+        fetch(`${API_BASE_URL}/api/loans`, { headers: getApiHeaders() })
             .then(res => res.json())
             .then(data => {
-                setLoans(data.loans || []);
-                setUserIncome(data.user_monthly_income || 0);
-                setLoading(false);
+                if (isMounted.current) {
+                    setLoans(data.loans || []);
+                    setUserIncome(data.user_monthly_income || 0);
+                    setLoading(false);
+                }
             })
             .catch(err => {
                 console.error("Failed to fetch loans", err);
-                setLoading(false);
+                if (isMounted.current) {
+                    setLoading(false);
+                }
             });
+        
+        return () => {
+            isMounted.current = false;
+        };
     }, []);
 
     return (
@@ -158,12 +169,12 @@ export function Loans() {
                                     </Button>
                                     {loan.eligible && loan.link && (
                                         <p className="text-xs text-center text-gray-400 mt-2">
-                                            Opens <span className="font-medium text-gray-500">{new URL(loan.link).hostname}</span> in a new tab
+                                            Opens <span className="font-medium text-gray-500">{(() => { try { return new URL(loan.link).hostname; } catch { return loan.link; } })()}</span> in a new tab
                                         </p>
                                     )}
 
                                     {/* Verification Badge */}
-                                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <div className="bg-green-100 p-1.5 rounded-full">
                                             <Sparkles className="w-4 h-4 text-green-600" />
                                         </div>

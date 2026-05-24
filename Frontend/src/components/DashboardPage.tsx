@@ -3,7 +3,7 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { CheckCircle2, AlertCircle, TrendingUp, Upload, Loader2, MessageSquare, Bot, FileSearch, ShieldCheck, Gift, ArrowRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 import { useEarnings } from '../EarningsContext';
 
 export function DashboardPage({ onNavigate }: { onNavigate?: (page: string) => void }) {
@@ -25,6 +25,7 @@ export function DashboardPage({ onNavigate }: { onNavigate?: (page: string) => v
       try {
         const response = await fetch(`${API_BASE_URL}/api/verify_document`, {
           method: 'POST',
+          headers: getApiHeaders(),
           body: formData,
         });
 
@@ -178,7 +179,7 @@ export function DashboardPage({ onNavigate }: { onNavigate?: (page: string) => v
                 <Card key={idx} className="p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-all transform hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${source.verified ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                      <div className={`w-2 h-2 rounded-full ${source.verified ? 'bg-green-500' : 'bg-amber-500'}`}></div>
                       <h3 className="text-sm font-medium text-gray-700">{source.name || source.source}</h3>
                     </div>
                     {source.verified ? (
@@ -191,7 +192,7 @@ export function DashboardPage({ onNavigate }: { onNavigate?: (page: string) => v
                     ₹{source.amount.toLocaleString('en-IN')}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {source.verified ? 'Verified' : 'Verified'}
+                    {source.verified ? 'Verified' : 'Pending'}
                   </p>
                 </Card>
               ))}
@@ -212,7 +213,11 @@ export function DashboardPage({ onNavigate }: { onNavigate?: (page: string) => v
                 <XAxis dataKey="month" stroke="#9ca3af" />
                 <YAxis stroke="#9ca3af" tickFormatter={(value) => `₹${(value / 1000)}k`} />
                 <Tooltip
-                  formatter={(value: number) => `₹${value.toLocaleString('en-IN')}`}
+                  formatter={(value: any) => {
+                    if (value === null || value === undefined) return '₹0';
+                    const num = Number(value);
+                    return isNaN(num) ? `₹${value}` : `₹${num.toLocaleString('en-IN')}`;
+                  }}
                   contentStyle={{
                     backgroundColor: 'white',
                     border: '1px solid #e5e7eb',

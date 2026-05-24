@@ -6,7 +6,7 @@ import {
     Bot, Send, Loader2, Sparkles, MessageSquare, Shield, TrendingUp,
     AlertTriangle, Info, User, ArrowRight, RefreshCw, Gift, Zap
 } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 import { useEarnings } from '../EarningsContext';
 
 type Tab = 'chat' | 'decoder' | 'schemes' | 'risk';
@@ -60,6 +60,14 @@ function ChatTab() {
     const [loading, setLoading] = useState(false);
     const [sessionId] = useState(() => `session_${Date.now()}`);
     const chatEndRef = useRef<HTMLDivElement>(null);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -75,15 +83,21 @@ function ChatTab() {
         try {
             const res = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ message: userMsg, session_id: sessionId })
             });
             const data = await res.json();
-            setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+            if (isMounted.current) {
+                setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+            }
         } catch {
-            setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I couldn\'t connect to the backend. Please check if the server is running.' }]);
+            if (isMounted.current) {
+                setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I couldn\'t connect to the backend. Please check if the server is running.' }]);
+            }
         } finally {
-            setLoading(false);
+            if (isMounted.current) {
+                setLoading(false);
+            }
         }
     };
 
@@ -203,6 +217,14 @@ function DecoderTab() {
     const [message, setMessage] = useState('');
     const [decoded, setDecoded] = useState('');
     const [loading, setLoading] = useState(false);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     const handleDecode = async () => {
         if (!message.trim()) return;
@@ -211,15 +233,21 @@ function DecoderTab() {
         try {
             const res = await fetch(`${API_BASE_URL}/api/decode_message`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ message })
             });
             const data = await res.json();
-            setDecoded(data.decoded_message);
+            if (isMounted.current) {
+                setDecoded(data.decoded_message);
+            }
         } catch {
-            setDecoded('Error: Could not decode message. Make sure the backend is running.');
+            if (isMounted.current) {
+                setDecoded('Error: Could not decode message. Make sure the backend is running.');
+            }
         } finally {
-            setLoading(false);
+            if (isMounted.current) {
+                setLoading(false);
+            }
         }
     };
 
@@ -308,6 +336,14 @@ function SchemesTab() {
     const [category, setCategory] = useState('General');
     const [schemes, setSchemes] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     const handleRecommend = async () => {
         setLoading(true);
@@ -315,7 +351,7 @@ function SchemesTab() {
         try {
             const res = await fetch(`${API_BASE_URL}/api/recommend_schemes`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     age: Number(age),
                     income: totalEarnings * 12,
@@ -324,11 +360,15 @@ function SchemesTab() {
                 })
             });
             const data = await res.json();
-            setSchemes(data.schemes || []);
+            if (isMounted.current) {
+                setSchemes(data.schemes || []);
+            }
         } catch {
             alert('Failed to fetch scheme recommendations.');
         } finally {
-            setLoading(false);
+            if (isMounted.current) {
+                setLoading(false);
+            }
         }
     };
 
@@ -442,6 +482,14 @@ function RiskTab() {
     const { monthlyData, totalEarnings } = useEarnings();
     const [prediction, setPrediction] = useState<any>(null);
     const [loading, setLoading] = useState(false);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
 
     const handlePredict = async () => {
         setLoading(true);
@@ -453,15 +501,19 @@ function RiskTab() {
 
             const res = await fetch(`${API_BASE_URL}/api/predict_risk`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ data: earningsHistory })
             });
             const data = await res.json();
-            setPrediction(data);
+            if (isMounted.current) {
+                setPrediction(data);
+            }
         } catch {
             alert('Failed to predict risk. Make sure the backend is running.');
         } finally {
-            setLoading(false);
+            if (isMounted.current) {
+                setLoading(false);
+            }
         }
     };
 

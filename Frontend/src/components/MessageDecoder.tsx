@@ -1,32 +1,48 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { MessageSquare, Loader2, Info } from 'lucide-react';
 import { Textarea } from './ui/textarea';
+import { API_BASE_URL, getApiHeaders } from '../config';
 
 export function MessageDecoder() {
     const [message, setMessage] = useState('');
     const [decoded, setDecoded] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
+
     const handleDecode = async () => {
         if (!message.trim()) return;
 
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/api/decode_message', {
+            const response = await fetch(`${API_BASE_URL}/api/decode_message`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ message })
             });
 
             const data = await response.json();
-            setDecoded(data.decoded_message);
+            if (isMounted.current) {
+                setDecoded(data.decoded_message);
+            }
         } catch (error) {
             console.error('Decode error:', error);
-            setDecoded('Error: Could not decode message. Make sure backend is running.');
+            if (isMounted.current) {
+                setDecoded('Error: Could not decode message. Make sure backend is running.');
+            }
         } finally {
-            setLoading(false);
+            if (isMounted.current) {
+                setLoading(false);
+            }
         }
     };
 

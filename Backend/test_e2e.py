@@ -9,7 +9,7 @@ import json
 import sys
 import os
 
-BASE = "http://localhost:8000"
+BASE = "http://127.0.0.1:8000"
 
 results = {"passed": 0, "failed": 0, "errors": []}
 
@@ -314,7 +314,7 @@ def main():
     if results["errors"]:
         print()
         for err in results["errors"]:
-            print(f"  ✗ {err}")
+            print(f"  [X] {err}")
     print("-" * 60)
     return 0 if results["failed"] == 0 else 1
 

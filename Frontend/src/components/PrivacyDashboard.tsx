@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import {
     Shield, ShieldCheck, Download, Trash2, ToggleLeft, ToggleRight,
     Lock, AlertTriangle, CheckCircle, FileText, Eye
 } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 import { PrivacyBadge } from './PrivacyBadge';
 
 // Permission keys stored in localStorage
@@ -31,6 +31,15 @@ const PERMISSION_KEYS = [
 ];
 
 export function PrivacyDashboard() {
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
+
     const [permissions, setPermissions] = useState<Record<string, boolean>>(() => {
         const stored: Record<string, boolean> = {};
         PERMISSION_KEYS.forEach(p => {
@@ -57,7 +66,7 @@ export function PrivacyDashboard() {
     const handleExport = async () => {
         setExportLoading(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/export_earnings`);
+            const res = await fetch(`${API_BASE_URL}/api/export_earnings`, { headers: getApiHeaders() });
             const data = await res.json();
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -69,7 +78,9 @@ export function PrivacyDashboard() {
         } catch {
             alert('Failed to export data. Please make sure the backend is running.');
         } finally {
-            setExportLoading(false);
+            if (isMounted.current) {
+                setExportLoading(false);
+            }
         }
     };
 
@@ -77,23 +88,27 @@ export function PrivacyDashboard() {
     const handleNuke = async () => {
         setNukeLoading(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/delete_all_data`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE_URL}/api/delete_all_data`, { method: 'DELETE', headers: getApiHeaders() });
             const data = await res.json();
             if (data.status === 'deleted') {
-                setNukeDone(true);
-                setNukeConfirm(false);
-                // Clear local permissions too
-                PERMISSION_KEYS.forEach(p => localStorage.removeItem(p.key));
-                setPermissions(() => {
-                    const reset: Record<string, boolean> = {};
-                    PERMISSION_KEYS.forEach(p => { reset[p.key] = true; });
-                    return reset;
-                });
+                if (isMounted.current) {
+                    setNukeDone(true);
+                    setNukeConfirm(false);
+                    // Clear local permissions too
+                    PERMISSION_KEYS.forEach(p => localStorage.removeItem(p.key));
+                    setPermissions(() => {
+                        const reset: Record<string, boolean> = {};
+                        PERMISSION_KEYS.forEach(p => { reset[p.key] = true; });
+                        return reset;
+                    });
+                }
             }
         } catch {
             alert('Failed to delete data. Please ensure the backend is running.');
         } finally {
-            setNukeLoading(false);
+            if (isMounted.current) {
+                setNukeLoading(false);
+            }
         }
     };
 

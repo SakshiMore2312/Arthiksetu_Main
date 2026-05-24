@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { MessageSquare, Loader2, CheckCircle, DollarSign, Calendar, Building2, Sparkles, AlertTriangle, ArrowRight, Zap, RefreshCw } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 import { useEarnings } from '../EarningsContext';
 
 interface ParsedSMS {
@@ -26,6 +26,15 @@ export function SMSAnalyzer() {
     // Fraud Detection Logic
     const fraudAlerts = parsedResults.filter((r: ParsedSMS) => r.type === 'debit' && r.amount > 5000);
 
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
+
     const handleAnalyze = async () => {
         if (!messages.trim()) return;
 
@@ -34,19 +43,23 @@ export function SMSAnalyzer() {
             const messageList = messages.split('\n').filter(m => m.trim());
             const response = await fetch(`${API_BASE_URL}/api/parse_sms`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ messages: messageList })
             });
 
             const data = await response.json();
-            setParsedResults(data.transactions || []);
+            if (isMounted.current) {
+                setParsedResults(data.transactions || []);
+            }
             // Refresh shared earnings state so Dashboard & other pages update
             await refreshEarnings();
         } catch (error) {
             console.error('SMS parsing error:', error);
             alert('Failed to parse SMS. Make sure backend is running.');
         } finally {
-            setLoading(false);
+            if (isMounted.current) {
+                setLoading(false);
+            }
         }
     };
 
@@ -247,7 +260,7 @@ export function SMSAnalyzer() {
                                                         <div>
                                                             <p className="text-sm text-blue-200 font-medium uppercase tracking-wide">Total Earnings Detected</p>
                                                             <p className="text-3xl font-black heading-display">
-                                                                ₹{parsedResults.reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString('en-IN')}
+                                                                ₹{parsedResults.filter(r => r.type === 'credit').reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString('en-IN')}
                                                             </p>
                                                         </div>
                                                     </div>

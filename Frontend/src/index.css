@@ -66,3 +66,111 @@
 .heading-primary {
   font-family: 'Inter', sans-serif;
 }
+
+/* Google Translate Widget Custom Styling */
+#google_translate_element {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+/* Override Google's inline container styles */
+.goog-te-gadget-simple {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 8px 14px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.goog-te-gadget-simple:hover {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Hide default Google Translate icon */
+.goog-te-gadget-icon {
+  background-image: none !important;
+  display: none !important;
+}
+
+/* Prepend a clean Globe emoji or custom icon */
+.goog-te-gadget-simple::before {
+  content: "🌐";
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Style the text and chevron */
+.goog-te-menu-value {
+  color: #f1f5f9 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  font-family: 'Outfit', sans-serif !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  text-decoration: none !important;
+}
+
+.goog-te-menu-value span {
+  font-family: 'Outfit', sans-serif !important;
+  color: #f1f5f9 !important;
+}
+
+.goog-te-menu-value img {
+  display: none !important;
+}
+
+/* Hide default separator line inside the widget */
+.goog-te-menu-value span:nth-child(3) {
+  display: none !important;
+}
+
+/* Style the chevron arrow */
+.goog-te-menu-value span:nth-child(5) {
+  color: #94a3b8 !important;
+  font-size: 10px !important;
+  margin-left: 2px !important;
+}
+
+/* Hide the 'Powered by Google' text */
+.goog-te-gadget {
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+.goog-te-gadget a {
+  display: none !important;
+}
+
+/* Hide Google Translate top bar that shifts pages down */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-banner-frame {
+  display: none !important;
+}
+
+body {
+  top: 0px !important;
+}
+
+/* Hide standard tooltip helper */
+.goog-tooltip {
+  display: none !important;
+}
+.goog-tooltip:hover {
+  display: none !important;
+}
+.goog-text-highlight {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}

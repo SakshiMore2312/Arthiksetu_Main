@@ -7,8 +7,12 @@ import os
 import time
 import json
 import re
+import asyncio
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict
+
+logger = logging.getLogger("arthiksetu.gemini")
 
 # Load API key from environment variable only (never hardcode keys!)
 from dotenv import load_dotenv
@@ -16,7 +20,7 @@ load_dotenv()
 
 _gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 if not _gemini_api_key:
-    print("WARNING: GEMINI_API_KEY not set in .env file. AI features will not work.")
+    logger.warning("GEMINI_API_KEY not set in .env file. AI features will not work.")
 
 API_KEYS = [k.strip() for k in _gemini_api_key.split(",") if k.strip()]
 _current_key_index = 0
@@ -26,6 +30,8 @@ def configure_gemini(model_name='gemini-2.5-flash'):
     global _current_key_index
     if genai is None:
         raise ImportError("Google Generative AI module not found. Install google-generativeai")
+    if not API_KEYS:
+        raise ValueError("GEMINI_API_KEY environment variable is not set or empty in .env.")
     genai.configure(api_key=API_KEYS[_current_key_index % len(API_KEYS)])
     return genai.GenerativeModel(model_name)
 
@@ -40,6 +46,8 @@ def _rotate_key_and_retry(func, *args, max_retries=2, **kwargs):
             last_err = e
             err_str = str(e)
             if "429" in err_str or "quota" in err_str.lower() or "Resource has been exhausted" in err_str:
+                if not API_KEYS:
+                    raise ValueError("GEMINI_API_KEY environment variable is not set or empty in .env.")
                 _current_key_index = (_current_key_index + 1) % len(API_KEYS)
                 genai.configure(api_key=API_KEYS[_current_key_index])
                 time.sleep(1)
@@ -61,6 +69,8 @@ def _generate_with_retry(model, content, max_retries=2):
             last_err = e
             err_str = str(e)
             if "429" in err_str or "quota" in err_str.lower() or "Resource has been exhausted" in err_str:
+                if not API_KEYS:
+                    raise ValueError("GEMINI_API_KEY environment variable is not set or empty in .env.")
                 _current_key_index = (_current_key_index + 1) % len(API_KEYS)
                 genai.configure(api_key=API_KEYS[_current_key_index])
                 model = configure_gemini()
@@ -116,7 +126,7 @@ async def parse_sms_with_ai(messages: List[str]) -> List[Dict]:
             Only return the JSON, no markdown formatting.
             """
             
-            response = _generate_with_retry(model, prompt)
+            response = await asyncio.to_thread(_generate_with_retry, model, prompt)
             text = response.text.replace('```json', '').replace('```', '').strip()
             
             try:
@@ -179,7 +189,7 @@ Previous conversation:
 User: {message}
 """
         
-        response = _generate_with_retry(model, prompt)
+        response = await asyncio.to_thread(_generate_with_retry, model, prompt)
         return response.text
     except Exception as e:
         return f"I'm having trouble connecting right now. Error: {str(e)}"
@@ -211,7 +221,7 @@ async def predict_income_risk(earnings_history: List[Dict]) -> Dict:
         Only return JSON, no markdown.
         """
         
-        response = _generate_with_retry(model, prompt)
+        response = await asyncio.to_thread(_generate_with_retry, model, prompt)
         text = response.text.replace('```json', '').replace('```', '').strip()
         
         try:
@@ -241,7 +251,7 @@ async def decode_financial_message(message: str) -> str:
         Keep it under 50 words.
         """
         
-        response = _generate_with_retry(model, prompt)
+        response = await asyncio.to_thread(_generate_with_retry, model, prompt)
         return response.text
     except Exception as e:
         return f"Could not decode: {str(e)}"
@@ -374,9 +384,7 @@ ADDITIONAL CROSS-CHECKS:
         return result
         
     except Exception as e:
-        print(f"Error in AI verification: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Error in AI verification: {e}", exc_info=True)
         return {
             "is_valid": False, 
             "extracted_id": None, 

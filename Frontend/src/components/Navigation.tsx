@@ -4,9 +4,10 @@ import { useState } from 'react';
 interface NavigationProps {
   currentPage: 'dashboard' | 'unified-dashboard' | 'sms-analyzer' | 'tax' | 'schemes' | 'loans' | 'reports' | 'profile' | 'ai-assistant' | 'document-verify' | 'privacy-dashboard';
   onNavigate: (page: 'dashboard' | 'unified-dashboard' | 'sms-analyzer' | 'tax' | 'schemes' | 'loans' | 'reports' | 'profile' | 'ai-assistant' | 'document-verify' | 'privacy-dashboard') => void;
+  user?: any;
 }
 
-export function Navigation({ currentPage, onNavigate }: NavigationProps) {
+export function Navigation({ currentPage, onNavigate, user }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -59,10 +60,14 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => onNavigate('profile')}
-              className="hidden lg:flex items-center px-5 py-2.5 rounded-lg bg-[#1e3a5f] text-white text-sm font-semibold hover:bg-[#2a4a6f] transition-all shadow-md hover:shadow-lg"
+              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-100 hover:border-gray-300 transition-all"
             >
-              <User className="w-4 h-4 mr-2" />
-              Profile
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="profile" className="w-6 h-6 rounded-full" />
+              ) : (
+                <User className="w-4 h-4 text-gray-500" />
+              )}
+              <span>{user?.displayName ? user.displayName.split(' ')[0] : 'Profile'}</span>
             </button>
 
             {/* Mobile menu button */}
@@ -101,9 +106,12 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
                 onNavigate('profile');
                 setIsMobileMenuOpen(false);
               }}
-              className="w-full px-4 py-2 rounded-lg bg-[#1e3a5f] text-white text-sm font-medium"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#1e3a5f] text-white text-sm font-medium"
             >
-              Profile
+              {user?.photoURL && (
+                <img src={user.photoURL} alt="profile" className="w-5 h-5 rounded-full" />
+              )}
+              <span>{user?.displayName || 'Profile'}</span>
             </button>
           </div>
         )}

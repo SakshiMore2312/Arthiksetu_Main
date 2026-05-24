@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { TrendingUp, AlertTriangle, RefreshCw, BarChart2, PieChart as PieChartIcon, LayoutDashboard, Sparkles, ArrowRight, Activity } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 import { useEarnings } from '../EarningsContext';
 
 const COLORS = ['#F7931E', '#0A1F44', '#1E7F5C', '#3B82F6', '#F59E0B', '#8B5CF6'];
@@ -17,6 +17,15 @@ export function UnifiedDashboard() {
 
     const totalEarnings = Object.values(platformData).reduce((sum, val) => sum + val, 0);
 
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
+
     const fetchAnalysis = async (sources: typeof ctxSources, monthly: typeof ctxMonthly) => {
         setLoading(true);
         try {
@@ -28,24 +37,30 @@ export function UnifiedDashboard() {
             });
             
             if (Object.keys(dynPlatformData).length === 0) {
-                setPlatformData({});
-                setLoading(false);
+                if (isMounted.current) {
+                    setPlatformData({});
+                    setLoading(false);
+                }
                 return;
             }
             
-            setPlatformData(dynPlatformData);
+            if (isMounted.current) {
+                setPlatformData(dynPlatformData);
+            }
             const dynTotal = Object.values(dynPlatformData).reduce((sum, val) => sum + val, 0);
 
             const response = await fetch(`${API_BASE_URL}/api/unified_dashboard`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     platform_data: dynPlatformData,
                     total_earnings: dynTotal
                 })
             });
             const data = await response.json();
-            setAnalysis(data);
+            if (isMounted.current) {
+                setAnalysis(data);
+            }
 
             const earningsHistory = monthly.length > 0 
                 ? monthly.map((m: any) => ({ date: m.month, amount: m.amount }))
@@ -53,15 +68,19 @@ export function UnifiedDashboard() {
 
             const riskResponse = await fetch(`${API_BASE_URL}/api/predict_risk`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ data: earningsHistory })
             });
             const riskData = await riskResponse.json();
-            setRiskPrediction(riskData);
+            if (isMounted.current) {
+                setRiskPrediction(riskData);
+            }
         } catch (error) {
             console.error('Error fetching analysis:', error);
         } finally {
-            setLoading(false);
+            if (isMounted.current) {
+                setLoading(false);
+            }
         }
     };
 

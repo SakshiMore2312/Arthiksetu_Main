@@ -1,11 +1,11 @@
-import { useState, useEffect, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import {
     Upload, CheckCircle, XCircle, Loader2, FileText,
     Shield, Lock, ShieldCheck, Trash2, EyeOff
 } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getApiHeaders } from '../config';
 import { PrivacyBadge } from './PrivacyBadge';
 
 const ALL_DOC_TYPES = ['Aadhaar', 'PAN', 'Driving License', 'Voter ID', 'Passport', 'Income Proof'];
@@ -21,6 +21,15 @@ const VERIFY_STEPS = [
 type StepStatus = 'pending' | 'active' | 'done';
 
 export function DocumentVerification() {
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+        };
+    }, []);
+
     const [docType, setDocType] = useState('Aadhaar');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string>('');
@@ -55,9 +64,11 @@ export function DocumentVerification() {
 
     const runSteps = async () => {
         for (let i = 0; i < VERIFY_STEPS.length - 1; i++) {
+            if (!isMounted.current) return;
             setCurrentStep(i + 1);
             setStepStatuses(prev => prev.map((s, idx) => idx === i ? 'active' : idx < i ? 'done' : s));
             await new Promise(r => setTimeout(r, VERIFY_STEPS[i].duration));
+            if (!isMounted.current) return;
             setStepStatuses(prev => prev.map((s, idx) => idx === i ? 'done' : s));
         }
     };
@@ -75,7 +86,7 @@ export function DocumentVerification() {
 
         let apiResult: any;
         try {
-            const response = await fetch(`${API_BASE_URL}/api/verify_document`, { method: 'POST', body: formData });
+            const response = await fetch(`${API_BASE_URL}/api/verify_document`, { method: 'POST', headers: getApiHeaders(), body: formData });
             apiResult = await response.json();
         } catch {
             apiResult = { status: 'error', message: 'Failed to verify. Make sure backend is running.' };
@@ -83,11 +94,15 @@ export function DocumentVerification() {
 
         await stepsPromise;
 
+        if (!isMounted.current) return;
+
         // Step 4: Deleting image
         setCurrentStep(4);
         setStepStatuses(prev => prev.map((s, idx) => idx === 3 ? 'active' : idx < 3 ? 'done' : s));
         setPreview('');
         await new Promise(r => setTimeout(r, VERIFY_STEPS[3].duration));
+
+        if (!isMounted.current) return;
         setStepStatuses(prev => prev.map(() => 'done'));
 
         // Mask the extracted ID — only show last 4 digits

@@ -52,6 +52,27 @@ export default defineConfig({
   build: {
     target: 'esnext',
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('firebase')) {
+              return 'vendor-firebase';
+            }
+            if (id.includes('recharts') || id.includes('d3')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('purify')) {
+              return 'vendor-pdf';
+            }
+            return 'vendor';
+          }
+        }
+      }
+    }
   },
   server: {
     port: 5173,

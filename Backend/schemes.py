@@ -114,9 +114,9 @@ def check_eligibility(scheme, profile):
     criteria = scheme.get("criteria", {})
     
     # Age Check
-    if "min_age" in criteria and profile.get("age") and profile["age"] < criteria["min_age"]:
+    if "min_age" in criteria and profile.get("age") is not None and profile["age"] < criteria["min_age"]:
         return False
-    if "max_age" in criteria and profile.get("age") and profile["age"] > criteria["max_age"]:
+    if "max_age" in criteria and profile.get("age") is not None and profile["age"] > criteria["max_age"]:
         return False
         
     # Occupation Check (Basic tag matching)
