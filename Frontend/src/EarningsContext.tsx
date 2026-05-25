@@ -46,7 +46,7 @@ export function EarningsProvider({ children }: { children: ReactNode }) {
       setMonthlyData(data.earningsData || []);
     } catch (err) {
       console.error('Failed to fetch dashboard data', err);
-      setError('Unable to connect to backend. Please ensure the backend server is running on port 8000.');
+      setError('Unable to connect to backend. Please ensure the backend server is running and accessible.');
     } finally {
       setLoading(false);
     }
