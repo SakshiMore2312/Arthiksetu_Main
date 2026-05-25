@@ -1,132 +1,158 @@
-# General
+# =========================
+# OS / System Files
+# =========================
 .DS_Store
 Thumbs.db
-*.log
+Desktop.ini
+$RECYCLE.BIN/
+.AppleDouble
+.LSOverride
+ehthumbs.db
 
-# Editor directories
+# =========================
+# Logs
+# =========================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# =========================
+# Editor / IDE
+# =========================
 .idea/
 .vscode/
 *.swp
 *.swo
 *.code-workspace
 
-# Python / Django
-*.pyc
-*.pyo
-*.pyd
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-venv/
-env/
-.env
-.venv
-ENV/
-env.bak/
-venv.bak/
-pip-log.txt
-pip-delete-this-directory.txt
-.Python
-*.egg-info/
-dist/
-downloads/
-.eggs/
-*.egg
-
-# Django Specific
-*.sqlite3
-*.db
-db.sqlite3
-db.sqlite3-journal
-media/
-staticfiles/
-static_root/
-local_settings.py
-celerybeat-schedule
-celerybeat.pid
-
-# Node / Frontend
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-dist/
-build/
-.npm
-.eslintcache
-.parcel-cache/
-.next/
-.nuxt/
-.cache/
-.vuepress/dist
-.serverless/
-.fusebox/
-.dynamodb/
-.tern-port
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
-
+# =========================
 # Environment Variables
+# =========================
 .env
 .env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Allow examples
 !.env.example
 
-# React Native / Expo
-.expo/
-.expo-shared/
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
-web-build/
+# =========================
+# Python / FastAPI
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*$py.class
+*.so
 
-# Testing
-coverage/
-.nyc_output/
-*.lcov
-.hypothesis/
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+*.egg-info/
+.eggs/
+*.egg
+
 .pytest_cache/
 .tox/
 .coverage
 .coverage.*
 htmlcov/
-*.cover
+.hypothesis/
 
-# System
-tmp/
-temp/
-*.tmp
-.gemini/
+# =========================
+# Node / React / Vite
+# =========================
+node_modules/
 
-# Firebase & Secrets
-**/serviceAccountKey.json
-**/*serviceAccountKey*.json
+dist/
+build/
+
+.npm
+.cache/
+.eslintcache
+.parcel-cache/
+
+.next/
+.nuxt/
+.serverless/
+.fusebox/
+.dynamodb/
+
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# =========================
+# React Native / Expo
+# =========================
+.expo/
+.expo-shared/
+web-build/
+
+# =========================
+# Firebase / Secrets
+# =========================
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
 .firebase/
 
-# Backup files
+**/serviceAccountKey.json
+**/*serviceAccountKey*.json
+
+# =========================
+# Testing / Coverage
+# =========================
+coverage/
+.nyc_output/
+*.lcov
+*.cover
+
+# =========================
+# Temporary / Backup Files
+# =========================
+tmp/
+temp/
+*.tmp
 *.bak
 *.backup
 *~
 
-# OS specific
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-.AppleDouble
-.LSOverride
+# =========================
+# Database Files
+# =========================
+*.sqlite3
+*.db
+db.sqlite3
+db.sqlite3-journal
+
+# =========================
+# Deployment
+# =========================
+.vercel/
+.render/
+
+# =========================
+# Gemini / AI Tooling
+# =========================
+.gemini/
