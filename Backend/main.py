@@ -47,10 +47,17 @@ else:
         "http://127.0.0.1:3000",
     ]
 
+# FastAPI CORSMiddleware raises RuntimeError if allow_origins=['*'] and allow_credentials=True.
+# If wildcard '*' is specified, we must disable credentials.
+# Otherwise, we enable credentials to support secure frontend domain requests.
+allow_creds = True
+if "*" in origins:
+    allow_creds = False
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=allow_creds,
     allow_methods=["*"],
     allow_headers=["*"],
 )
