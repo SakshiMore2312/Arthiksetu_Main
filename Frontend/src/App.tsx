@@ -17,6 +17,7 @@ import { DocumentVerification } from './components/DocumentVerification';
 import { PrivacyDashboard } from './components/PrivacyDashboard';
 import { AuthPage } from './components/AuthPage';
 import { API_BASE_URL } from './config';
+import { LanguageSelector } from './components/LanguageSelector';
 
 import {
   signInWithPopup,
@@ -363,6 +364,8 @@ export default function App() {
         <main>
           {renderPage()}
         </main>
+
+        <LanguageSelector />
 
         {/* Footer */}
 
