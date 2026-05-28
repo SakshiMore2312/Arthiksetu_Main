@@ -251,7 +251,7 @@ export function SMSAnalyzer() {
                                         <>
                                             {/* Summary Banner */}
                                             {parsedResults.length > 0 && (
-                                                <div className="mb-6 p-6 bg-gradient-to-br from-[#0A1F44] to-[#1e3a5f] rounded-2xl shadow-md text-white border-0 flex items-center justify-between relative overflow-hidden">
+                                                <div className="mb-6 p-6 bg-gradient-to-br from-[#0A1F44] to-[#1e3a5f] rounded-2xl shadow-md text-white border-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
                                                     <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 grayscale"></div>
                                                     <div className="relative z-10 flex items-center gap-4">
                                                         <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm">

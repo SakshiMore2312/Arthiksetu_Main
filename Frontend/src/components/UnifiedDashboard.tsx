@@ -148,7 +148,7 @@ export function UnifiedDashboard() {
 
                 {Object.keys(platformData).length > 0 && (<>
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up">
                     <Card className="p-8 text-white rounded-2xl shadow-xl relative overflow-hidden group hover:shadow-2xl transition-all hover:-translate-y-1" style={{ background: 'linear-gradient(135deg, #0A1F44 0%, #1E3A5F 100%)' }}>
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity group-hover:scale-110 duration-500">
                             <TrendingUp className="w-32 h-32 text-white" />
@@ -273,7 +273,7 @@ export function UnifiedDashboard() {
                 )}
 
                 {/* Charts Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in-up">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 animate-fade-in-up">
                     {/* Bar Chart */}
                     <Card className="p-8 bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
                         <div className="flex items-center justify-between mb-8">
@@ -329,8 +329,8 @@ export function UnifiedDashboard() {
                                 <p className="text-sm text-gray-500 mt-1">Percentage share of each platform</p>
                             </div>
                         </div>
-                        <div className="flex flex-col md:flex-row items-center gap-8 h-[350px]">
-                            <div className="flex-1 h-full w-full">
+                        <div className="flex flex-col md:flex-row items-center gap-8 h-auto md:h-[350px]">
+                            <div className="flex-1 h-64 md:h-full w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
@@ -370,7 +370,7 @@ export function UnifiedDashboard() {
                 {/* Detailed Breakdown */}
                 <Card className="animate-fade-in-up p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
                     <h3 className="text-xl font-bold text-[#0A1F44] heading-primary mb-6">Detailed Breakdown</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {Object.entries(platformData).map(([platform, amount], idx) => (
                             <div
                                 key={platform}

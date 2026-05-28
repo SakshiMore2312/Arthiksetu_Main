@@ -91,66 +91,68 @@ export function DashboardPage({ onNavigate }: { onNavigate?: (page: string) => v
       {/* Hero Banner */}
       <div className="text-white shadow-md mb-8" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0A1F44 100%)', borderRadius: '0 0 24px 24px' }}>
         <div className="max-w-7xl mx-auto px-6 py-16">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div>
               <p className="text-sm font-medium text-white mb-2 uppercase tracking-wide" style={{ opacity: 0.9 }}>Total Monthly Earnings</p>
-              <h1 className="text-6xl font-bold mb-2 tracking-tight text-white">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-2 tracking-tight text-white">
                 ₹{totalEarnings.toLocaleString('en-IN')}
               </h1>
               <p className="text-sm text-white flex items-center gap-1 font-light opacity-90">
-                <TrendingUp className="w-4 h-4" />
-                Aggregated from {incomeSources.length} income sources
+                <TrendingUp className="w-4 h-4 shrink-0" />
+                <span>Aggregated from {incomeSources.length} income sources</span>
               </p>
             </div>
-            <div>
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                className="text-white px-8 py-3.5 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
-                style={{ backgroundColor: '#ff8c42' }}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-5 h-5 mr-2" />
-                    Add Income Proof
-                  </>
-                )}
-              </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png"
-                style={{ display: 'none' }}
-              />
-            </div>
-            {uploadResult && (
-              <div className={`mt-0 ml-4 p-4 rounded-lg max-w-md ${uploadResult.success ? 'bg-green-900/40 border border-green-500/40' : 'bg-red-900/40 border border-red-500/40'}`}>
-                <p className={`text-sm font-semibold ${uploadResult.success ? 'text-green-300' : 'text-red-300'}`}>
-                  {uploadResult.success ? '✓ Income Proof Verified' : '✗ Verification Failed'}
-                </p>
-                {uploadResult.total_amount > 0 && (
-                  <p className="text-white text-lg font-bold mt-1">
-                    ₹{Number(uploadResult.total_amount).toLocaleString('en-IN')} detected
-                  </p>
-                )}
-                {uploadResult.source_name && uploadResult.source_name !== 'Unknown' && (
-                  <p className="text-gray-300 text-xs mt-1">Source: {uploadResult.source_name}</p>
-                )}
-                {uploadResult.fileName && (
-                  <p className="text-gray-400 text-xs mt-1">File: {uploadResult.fileName}</p>
-                )}
-                {!uploadResult.success && uploadResult.message && (
-                  <p className="text-red-300 text-xs mt-1">{uploadResult.message}</p>
-                )}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+              <div>
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full sm:w-auto text-white px-8 py-3.5 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  style={{ backgroundColor: '#ff8c42' }}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 mr-2" />
+                      Add Income Proof
+                    </>
+                  )}
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  style={{ display: 'none' }}
+                />
               </div>
-            )}
+              {uploadResult && (
+                <div className={`p-4 rounded-lg w-full sm:w-80 ${uploadResult.success ? 'bg-green-900/40 border border-green-500/40' : 'bg-red-900/40 border border-red-500/40'}`}>
+                  <p className={`text-sm font-semibold ${uploadResult.success ? 'text-green-300' : 'text-red-300'}`}>
+                    {uploadResult.success ? '✓ Income Proof Verified' : '✗ Verification Failed'}
+                  </p>
+                  {uploadResult.total_amount > 0 && (
+                    <p className="text-white text-lg font-bold mt-1">
+                      ₹{Number(uploadResult.total_amount).toLocaleString('en-IN')} detected
+                    </p>
+                  )}
+                  {uploadResult.source_name && uploadResult.source_name !== 'Unknown' && (
+                    <p className="text-gray-300 text-xs mt-1">Source: {uploadResult.source_name}</p>
+                  )}
+                  {uploadResult.fileName && (
+                    <p className="text-gray-400 text-xs mt-1">File: {uploadResult.fileName}</p>
+                  )}
+                  {!uploadResult.success && uploadResult.message && (
+                    <p className="text-red-300 text-xs mt-1">{uploadResult.message}</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -174,7 +176,7 @@ export function DashboardPage({ onNavigate }: { onNavigate?: (page: string) => v
               </div>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {incomeSources.map((source, idx) => (
                 <Card key={idx} className="p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-all transform hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-4">
@@ -233,7 +235,7 @@ export function DashboardPage({ onNavigate }: { onNavigate?: (page: string) => v
         {/* AI Features */}
         <div>
           <h2 className="text-xl font-bold text-gray-900 mb-6">Features</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card onClick={() => onNavigate?.('unified-dashboard')} className="p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-all transform hover:-translate-y-1 cursor-pointer">
               <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
                 <TrendingUp className="w-6 h-6 text-orange-600" />

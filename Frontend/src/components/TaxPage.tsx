@@ -291,7 +291,7 @@ export function TaxPage() {
                     </div>
                     <p className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">{deduction.description}</p>
                   </div>
-                  <div className="flex items-center gap-8">
+                  <div className="flex flex-wrap items-center gap-4 sm:gap-8">
                     <div className="text-right">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Current</p>
                       <p className="text-xl font-bold text-gray-900">
@@ -338,14 +338,14 @@ export function TaxPage() {
             ))}
           </div>
           <div className="mt-8 pt-8 border-t border-gray-100">
-            <div className="flex justify-between items-center bg-gray-50 p-6 rounded-xl border border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 p-6 rounded-xl border border-gray-200 gap-6">
               <div>
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Deductions Claimed</p>
                 <p className="text-3xl font-black text-gray-900 heading-display">₹{totalDeductions.toLocaleString('en-IN')}</p>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Tax Saved</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center sm:justify-end gap-2">
                   <div className="p-1 bg-green-100 rounded-full">
                     <TrendingUp className="w-4 h-4 text-green-600" />
                   </div>

@@ -254,10 +254,10 @@ export function ProfilePage({ user, onLogout }: { user?: any; onLogout?: () => v
                 </div>
               </div>
 
-              <div className="mt-8 pt-8 border-t border-gray-100 flex gap-4">
+              <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col sm:flex-row gap-4 w-full">
                 <Button
                   onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                  className={`px-6 py-2.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 ${isEditing
+                  className={`w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 ${isEditing
                     ? 'bg-green-600 hover:bg-green-700 text-white'
                     : 'bg-[#0A1F44] hover:bg-[#152c57] text-white'
                     }`}
@@ -269,14 +269,14 @@ export function ProfilePage({ user, onLogout }: { user?: any; onLogout?: () => v
                   <Button
                     variant="outline"
                     onClick={() => setIsEditing(false)}
-                    className="px-6 py-2.5 rounded-xl font-bold border-gray-300 hover:bg-gray-50 text-gray-600"
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold border-gray-300 hover:bg-gray-50 text-gray-600 flex items-center justify-center"
                   >
                     <X className="w-4 h-4 mr-2" /> Cancel
                   </Button>
                 )}
                 <Button
                   variant="destructive"
-                  className="ml-auto px-6 py-2.5 rounded-xl font-bold bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 shadow-none"
+                  className="sm:ml-auto w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 shadow-none flex items-center justify-center"
                   onClick={() => {
                     if (onLogout) {
                       onLogout();

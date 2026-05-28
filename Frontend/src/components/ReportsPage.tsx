@@ -15,7 +15,7 @@ export function ReportsPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-blue-50/20 pb-12">
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
         {/* Header */}
-        <div className="animate-fade-in-up flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="animate-fade-in-up flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-50 rounded-full mb-3 border border-blue-200">
               <FileText className="w-4 h-4 text-blue-600" />
@@ -36,7 +36,7 @@ export function ReportsPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           <Card className="p-6 bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-hidden group hover:shadow-xl transition-all hover:-translate-y-1">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-8 -mt-8 opacity-50 group-hover:scale-110 transition-transform"></div>
             <div className="flex items-start gap-4 relative">
@@ -126,10 +126,10 @@ export function ReportsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 sm:mt-0 flex items-center justify-end">
+                <div className="mt-4 sm:mt-0 w-full sm:w-auto flex items-center justify-start sm:justify-end">
                   <Button
                     variant="outline"
-                    className="border-gray-200 text-gray-700 hover:bg-white hover:border-blue-500 hover:text-blue-600 group-hover:bg-white transition-all font-semibold rounded-xl"
+                    className="w-full sm:w-auto border-gray-200 text-gray-700 hover:bg-white hover:border-blue-500 hover:text-blue-600 group-hover:bg-white transition-all font-semibold rounded-xl"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (report.id === 'annual_2024') {

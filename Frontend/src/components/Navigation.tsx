@@ -81,8 +81,8 @@ export function Navigation({ currentPage, onNavigate, user }: NavigationProps) {
         </div>
 
         {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden pb-4 space-y-2">
+        <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-[500px] opacity-100 pb-4' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+          <div className="space-y-2 mt-2">
             {navItems.map((item) => {
               const isActive = currentPage === item.id;
               return (
@@ -114,7 +114,7 @@ export function Navigation({ currentPage, onNavigate, user }: NavigationProps) {
               <span>{user?.displayName || 'Profile'}</span>
             </button>
           </div>
-        )}
+        </div>
       </div>
     </nav>
   );

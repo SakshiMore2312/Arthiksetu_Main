@@ -109,7 +109,7 @@ function ChatTab() {
     ];
 
     return (
-        <Card className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col" style={{ height: '600px' }}>
+        <Card className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-12rem)] md:h-[600px] min-h-[450px]">
             {/* Chat Header */}
             <div className="p-5 bg-gradient-to-r from-[#0A1F44] to-[#1e3a5f] text-white flex items-center gap-3">
                 <div className="p-2 bg-white/10 rounded-xl backdrop-blur-sm">
